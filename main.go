@@ -2,38 +2,51 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func loadDotEnv() error {
+func loadDotEnv() {
 	data, err := os.ReadFile(".env")
 	
 	if err != nil {
-		return errors.New("there was an error opening .env file")
+		log.Fatal("error:", errors.New("there was an error opening .env file"))
 	}
 
 	fileData := string(data)
 	pairVals := strings.Split(fileData, "\n")
 
 	for _, v := range pairVals {
-		key, val := strings.Split(v, "=")[0], strings.Split(v, "=")[1]
+		pair := strings.Split(v, "=")
+		key, val := pair[0], pair[1]
 		os.Setenv(key, val)
 	}
-
-	return nil
+	log.Print(".env loaded")
 }
 
 func main() {
 	loadDotEnv()
-	
 	port := os.Getenv("PORT")
 
 	if port == "" {
 		err := errors.New("error: PORT not found")
-		fmt.Println(err)
+		log.Fatalf("%v\n", err)
 	}
 
-	fmt.Println("Listening on port", port)
+	router := chi.NewRouter()
+	log.Printf("Initializing on server port %s...\n", port)
+	srv := &http.Server{
+		Handler: router,
+		Addr: ":"+port,
+	}
+	err := srv.ListenAndServe()
+	
+	if err != nil {
+		log.Fatalf("Error at serving\n")
+		return
+	}
 }
