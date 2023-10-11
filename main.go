@@ -8,11 +8,12 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 )
 
 func loadDotEnv() {
 	data, err := os.ReadFile(".env")
-	
+
 	if err != nil {
 		log.Fatal("error:", errors.New("there was an error opening .env file"))
 	}
@@ -38,13 +39,24 @@ func main() {
 	}
 
 	router := chi.NewRouter()
+
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
+
 	log.Printf("Initializing on server port %s...\n", port)
+
 	srv := &http.Server{
 		Handler: router,
-		Addr: ":"+port,
+		Addr:    ":" + port,
 	}
 	err := srv.ListenAndServe()
-	
+
 	if err != nil {
 		log.Fatalf("Error at serving\n")
 		return
