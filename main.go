@@ -49,6 +49,11 @@ func main() {
 		MaxAge:           300,
 	}))
 
+	nRouter := chi.NewRouter()
+	nRouter.Get("/healthz", handlerReadiness)
+
+	router.Mount("/v1", nRouter)
+
 	log.Printf("Initializing on server port %s...\n", port)
 
 	srv := &http.Server{
