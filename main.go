@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"log"
 	"net/http"
@@ -9,7 +10,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	_ "github.com/lib/pq"
+	"www.github.com/neortegab/go-rss-aggregator/internal/database"
 )
+
+type apiConfig struct {
+	DB *database.Queries
+}
 
 func loadDotEnv() {
 	data, err := os.ReadFile(".env")
@@ -38,6 +45,22 @@ func main() {
 		log.Fatalf("%v\n", err)
 	}
 
+	dbURL := os.Getenv("DB_URL")
+
+	if dbURL == "" {
+		log.Fatal("DB_URL not found")
+	}
+
+	conn, errDb := sql.Open("postgres", dbURL)
+
+	if errDb != nil {
+		log.Fatalf("Can't connect to database, error: %v\n", errDb)
+	}
+
+	apiCfg := apiConfig{
+		DB: database.New(conn),
+	}
+
 	router := chi.NewRouter()
 
 	router.Use(cors.Handler(cors.Options{
@@ -52,6 +75,7 @@ func main() {
 	nRouter := chi.NewRouter()
 	nRouter.Get("/healthz", handlerReadiness)
 	nRouter.Get("/err", handlerErr)
+	nRouter.Post("/users", apiCfg.handlerCreateUser)
 
 	router.Mount("/v1", nRouter)
 
